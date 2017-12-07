@@ -78,15 +78,12 @@ export default class Relationship {
     this.hasLoaded = false;
   }
 
-  get parentType() {
-    return this.internalModel.modelName;
+  _inverseIsAsync() {
+    return this.isAsync;
   }
 
-  _inverseIsAsync() {
-    if (!this.inverseKey || !this.inverseInternalModel) {
-      return false;
-    }
-    return this.inverseInternalModel._relationships.get(this.inverseKey).isAsync;
+  get parentType() {
+    return this.internalModel.modelName;
   }
 
   removeInverseRelationships() {

@@ -15,6 +15,13 @@ export default class ManyRelationship extends Relationship {
     this.__loadingPromise = null;
   }
 
+  _inverseIsAsync() {
+    if (!this.inverseKey || this.members.list.length < 1) {
+      return false;
+    }
+    return this.members.list[0]._relationships.get(this.inverseKey).isAsync;
+  }
+
   get _loadingPromise() { return this.__loadingPromise; }
   _updateLoadingPromise(promise, content) {
     if (this.__loadingPromise) {
@@ -80,8 +87,10 @@ export default class ManyRelationship extends Relationship {
 
   inverseDidDematerialize() {
     if (this._manyArray) {
-      this._manyArray.destroy();
-      this._manyArray = null;
+      if (this.isAsync) {
+        this._manyArray.destroy();
+        this._manyArray = null;
+      }
     }
     this.notifyHasManyChanged();
   }

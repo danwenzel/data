@@ -15,6 +15,13 @@ export default class BelongsToRelationship extends Relationship {
     this.canonicalState = null;
   }
 
+  _inverseIsAsync() {
+    if (!this.inverseKey || !this.inverseInternalModel) {
+      return false;
+    }
+    return this.inverseInternalModel._relationships.get(this.inverseKey).isAsync;
+  }
+
   setInternalModel(internalModel) {
     if (internalModel) {
       this.addInternalModel(internalModel);
