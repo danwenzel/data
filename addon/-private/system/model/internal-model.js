@@ -83,6 +83,7 @@ function destroyRelationship(rel) {
     rel.clear();
   }
 
+  // TODO: don't destroy sync. many array here (add to unload tests?)
   // TODO: ∀ i ϵ inverse i.inverseDidDematerialize()
   //  invalidate CPs to trigger refetch
   rel.removeInverseRelationships();
