@@ -12,6 +12,7 @@ export default class ManyRelationship extends Relationship {
     this.canonicalState = [];
     this.isPolymorphic = relationshipMeta.options.polymorphic;
     this._manyArray = null;
+    this._retainedManyArray = null;
     this.__loadingPromise = null;
   }
 
@@ -51,6 +52,10 @@ export default class ManyRelationship extends Relationship {
         isPolymorphic: this.isPolymorphic
       });
     }
+    if (this._retainedManyArray !== null) {
+      this._retainedManyArray.destroy();
+      this._retainedManyArray = null;
+    }
     return this._manyArray;
   }
 
@@ -85,13 +90,13 @@ export default class ManyRelationship extends Relationship {
     super.addCanonicalInternalModel(internalModel, idx);
   }
 
-  inverseDidDematerialize() {
-    if (this._manyArray) {
-      if (this.isAsync) {
-        this._manyArray.destroy();
-        this._manyArray = null;
-      }
+  inverseDidDematerialize(inverseInternalModel) {
+    if (this._manyArray !== null && this.isAsync) {
+      this._retainedManyArray = this._manyArray;
+      this._manyArray = null;
     }
+    this._removeInternalModelFromManyArray(this._manyArray, inverseInternalModel);
+    this._removeInternalModelFromManyArray(this._retainedManyArray, inverseInternalModel);
     this.notifyHasManyChanged();
   }
 
@@ -152,7 +157,15 @@ export default class ManyRelationship extends Relationship {
       return;
     }
     super.removeInternalModelFromOwn(internalModel, idx);
-    let manyArray = this.manyArray;
+    this._removeInternalModelFromManyArray(this._manyArray, internalModel, idx);
+    this._removeInternalModelFromManyArray(this._retainedManyArray, internalModel, idx);
+  }
+
+  _removeInternalModelFromManyArray(manyArray, internalModel, idx) {
+    if (manyArray === null) {
+      return;
+    }
+
     if (idx !== undefined) {
       //TODO(Igor) not used currently, fix
       manyArray.currentState.removeAt(idx);

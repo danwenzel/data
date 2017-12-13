@@ -62,31 +62,13 @@ function areAllModelsUnloaded(internalModels) {
   return true;
 }
 
+// TODO: comment
 function destroyRelationship(rel) {
-  // if (rel._inverseIsAsync()) {
-  //   // TODO: should remove internal model from inverse manyarray
-  //   // rel.removeInternalModelFromInverse(rel.inverseInternalModel);
-  //   rel.removeInverseRelationships();
-  // } else {
-  //   rel.removeInternalModelFromInverse();
-  // }
+  rel.internalModelDidDematerialize();
 
-  if (!rel._inverseIsAsync()) {
-    // unload acts as client-side delete for sync relationships
-    rel.removeInternalModelFromInverse(rel.internalModel);
-
-    // TODO: this is wrong b/c it removes from inverse
-    //  removeInternalModel ⇒  removeInternalModelFromInverse
-    //
-    //  we want to ∀ im ϵ r.members r.removeInternalModelFromOwn(im)
-    //  or equivalently just don't count it for purposes of retention when we walk the graph later
+  if (!rel.isAsync) {
     rel.clear();
   }
-
-  // TODO: don't destroy sync. many array here (add to unload tests?)
-  // TODO: ∀ i ϵ inverse i.inverseDidDematerialize()
-  //  invalidate CPs to trigger refetch
-  rel.removeInverseRelationships();
 }
 // this (and all heimdall instrumentation) will be stripped by a babel transform
 //  https://github.com/heimdalljs/babel5-plugin-strip-heimdall
@@ -450,6 +432,9 @@ export default class InternalModel {
   */
   _directlyRelatedInternalModels() {
     let array = [];
+
+    // TODO: only retained by inverse async
+    //  - inverse sync is client-side delete
     this._relationships.forEach((name, rel) => {
       array = array.concat(rel.members.list, rel.canonicalMembers.list);
     });

@@ -923,7 +923,9 @@ test('1:many sync unload 1 side', function (assert) {
   let person = env.store.peekRecord('person', 1);
   let car2 = env.store.peekRecord('car', 2);
   let car3 = env.store.peekRecord('car', 3);
+  let cars = person.get('cars');
 
+  assert.equal(cars.isDestroyed, false, 'ManyArray not destroyed');
   assert.deepEqual(person.get('cars').mapBy('id'), ['2', '3'], 'initialy relationship established lhs');
   assert.equal(car2.get('person.id'), 1, 'initially relationship established rhs');
   assert.equal(car3.get('person.id'), 1, 'initially relationship established rhs');
@@ -934,6 +936,7 @@ test('1:many sync unload 1 side', function (assert) {
 
   assert.equal(car2.get('person'), null, 'unloading acts as delete for sync relationships');
   assert.equal(car3.get('person'), null, 'unloading acts as delete for sync relationships');
+  assert.equal(cars.isDestroyed, true, 'ManyArray destroyed');
 
   person = run(() =>
     env.store.push({
@@ -1005,7 +1008,9 @@ test('1:many sync unload many side', function (assert) {
   let person = env.store.peekRecord('person', 1);
   let car2 = env.store.peekRecord('car', 2);
   let car3 = env.store.peekRecord('car', 3);
+  let cars = person.get('cars');
 
+  assert.equal(cars.isDestroyed, false, 'ManyArray not destroyed');
   assert.deepEqual(person.get('cars').mapBy('id'), ['2', '3'], 'initialy relationship established lhs');
   assert.equal(car2.get('person.id'), 1, 'initially relationship established rhs');
   assert.equal(car3.get('person.id'), 1, 'initially relationship established rhs');
@@ -1014,6 +1019,7 @@ test('1:many sync unload many side', function (assert) {
 
   assert.equal(env.store.hasRecordForId('car', 2), false, 'unloaded record gone from store');
 
+  assert.equal(cars.isDestroyed, false, 'ManyArray not destroyed');
   assert.deepEqual(person.get('cars').mapBy('id'), ['3'], 'unload sync relationship acts as delete');
   assert.equal(car3.get('person.id'), '1', 'unloading one of a sync hasMany does not affect the rest');
 
@@ -1100,13 +1106,21 @@ test('many:many sync unload', function (assert) {
   let person2 = env.store.peekRecord('person', 2);
   let group3 = env.store.peekRecord('group', 3);
   let group4 = env.store.peekRecord('group', 4);
+  let p2groups = person2.get('groups');
+  let g3people = group3.get('people');
 
   assert.deepEqual(person1.get('groups').mapBy('id'), ['3', '4'], 'initially established relationship lhs');
   assert.deepEqual(person2.get('groups').mapBy('id'), ['3', '4'], 'initially established relationship lhs');
   assert.deepEqual(group3.get('people').mapBy('id'), ['1', '2'], 'initially established relationship lhs');
   assert.deepEqual(group4.get('people').mapBy('id'), ['1', '2'], 'initially established relationship lhs');
 
+  assert.equal(p2groups.isDestroyed, false, 'groups is not destroyed');
+  assert.equal(g3people.isDestroyed, false, 'people is not destroyed');
+
   run(() => person2.unloadRecord());
+
+  assert.equal(p2groups.isDestroyed, true, 'groups (unloaded side) is destroyed');
+  assert.equal(g3people.isDestroyed, false, 'people (inverse) is not destroyed');
 
   assert.deepEqual(person1.get('groups').mapBy('id'), ['3', '4'], 'unloaded record in many:many does not affect inverse of inverse');
   assert.deepEqual(group3.get('people').mapBy('id'), ['1'], 'unloading acts as delete for sync relationships');
@@ -1264,19 +1278,23 @@ test('1:many async unload 1 side', function (assert) {
       }
     })
   );
-  let boat2, boat3;
+  let boats, boat2, boat3;
 
   return run(() =>
     person.get('boats').then((asyncRecords) => {
-      [boat2, boat3] = asyncRecords.toArray();
+      boats = asyncRecords;
+      [boat2, boat3] = boats.toArray();
       return EmberPromise.all([boat2, boat3].map(b => b.get('person')));
     }).then(() => {
       assert.deepEqual(person.hasMany('boats').ids(), ['2', '3'], 'initially relationship established lhs');
       assert.equal(boat2.belongsTo('person').id(), '1', 'initially relationship established rhs');
       assert.equal(boat3.belongsTo('person').id(), '1', 'initially relationship established rhs');
 
+      assert.equal(boats.isDestroyed, false, 'ManyArray is not destroyed');
+
       run(() => person.unloadRecord());
 
+      assert.equal(boats.isDestroyed, false, 'ManyArray is destroyed when 1 side is unloaded');
       assert.equal(boat2.belongsTo('person').id(), '1', 'unload async is not treated as delete');
       assert.equal(boat3.belongsTo('person').id(), '1', 'unload async is not treated as delete');
 
@@ -1346,24 +1364,31 @@ test('1:many async unload many side', function (assert) {
       assert.equal(boat2.belongsTo('person').id(), '1', 'initially relationship established rhs');
       assert.equal(boat3.belongsTo('person').id(), '1', 'initially relationship established rhs');
 
+      assert.deepEqual(boats.mapBy('id'), ['2', '3'], 'many array is initially set up correctly');
       run(() => boat2.unloadRecord());
-      // assert.deepEqual(boats.mapBy('id'), ['3'], 'unload async removes from previous many array');
+      assert.deepEqual(boats.mapBy('id'), ['3'], 'unload async removes from previous many array');
+      assert.equal(boats.isDestroyed, false, 'previous ManyArray not destroyed');
 
       run(() => boat3.unloadRecord());
-      // assert.deepEqual(boats.mapBy('id'), [], 'unload async removes from previous many array');
+      assert.deepEqual(boats.mapBy('id'), [], 'unload async removes from previous many array');
+      assert.equal(boats.isDestroyed, false, 'previous ManyArray not destroyed');
 
       assert.deepEqual(person.hasMany('boats').ids(), ['2', '3'], 'unload async is not treated as delete');
       assert.equal(boat3.belongsTo('person').id(), '1', 'unload async is not treated as delete');
 
       return person.get('boats');
     }).then((refetchedBoats) => {
+      assert.equal(boats.isDestroyed, false, 'previous ManyArray is not immediately destroyed after refetch');
+      assert.equal(boats.isDestroying, true, 'previous ManyArray is being destroyed immediately after refetch');
       assert.deepEqual(refetchedBoats.mapBy('id'), ['2', '3'], 'boats refetched');
       assert.deepEqual(person.hasMany('boats').ids(), ['2', '3'], 'unload async is not treated as delete');
       assert.equal(boat3.belongsTo('person').id(), '1', 'unload async is not treated as delete');
 
       assert.equal(findManyCalls, 2, 'findMany called as expected');
     })
-  );
+  ).then(() => {
+    assert.equal(boats.isDestroyed, true, 'previous ManyArray is destroyed in the runloop after refetching');
+  });
 });
 
 test('many:many async unload', function (assert) {
@@ -1421,11 +1446,12 @@ test('many:many async unload', function (assert) {
     })
   );
 
-  let person3, person4;
+  let person1Friends, person3, person4;
 
   return run(() =>
     person1.get('friends').then((asyncRecords) => {
-      [person3, person4] = asyncRecords.toArray();
+      person1Friends = asyncRecords;
+      [person3, person4] = person1Friends.toArray();
       return EmberPromise.all([person2, person3, person4].map(b => b.get('friends')));
     }).then(() => {
       assert.deepEqual(person1.hasMany('friends').ids(), ['3', '4'], 'initially relationship established lhs');
@@ -1434,15 +1460,19 @@ test('many:many async unload', function (assert) {
       assert.deepEqual(person4.hasMany('friends').ids(), ['1', '2'], 'initially relationship established rhs');
 
       run(() => person3.unloadRecord());
-      // assert.deepEqual(person1Friends.mapBy('id'), ['4'], 'unload async removes from previous many array');
+      assert.deepEqual(person1Friends.mapBy('id'), ['4'], 'unload async removes from previous many array');
+      assert.equal(person1Friends.isDestroyed, false, 'previous ManyArray not destroyed');
 
       run(() => person4.unloadRecord());
-      // assert.deepEqual(person1Friends.mapBy('id'), [], 'unload async removes from previous many array');
+      assert.deepEqual(person1Friends.mapBy('id'), [], 'unload async removes from previous many array');
+      assert.equal(person1Friends.isDestroyed, false, 'previous ManyArray not destroyed');
 
       assert.deepEqual(person1.hasMany('friends').ids(), ['3', '4'], 'unload async is not treated as delete');
 
       return person1.get('friends');
     }).then((refetchedFriends) => {
+      assert.equal(person1Friends.isDestroyed, false, 'previous ManyArray is not immediately destroyed after refetch');
+      assert.equal(person1Friends.isDestroying, true, 'previous ManyArray is being destroyed immediately after refetch');
       assert.deepEqual(refetchedFriends.mapBy('id'), ['3', '4'], 'friends refetched');
       assert.deepEqual(person1.hasMany('friends').ids(), ['3', '4'], 'unload async is not treated as delete');
 
@@ -1453,5 +1483,7 @@ test('many:many async unload', function (assert) {
 
       assert.equal(findManyCalls, 2, 'findMany called as expected');
     })
-  );
+  ).then(() => {
+    assert.equal(person1Friends.isDestroyed, true, 'previous ManyArray is destroyed in the runloop after refetching');
+  });
 });
