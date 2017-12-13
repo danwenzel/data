@@ -91,12 +91,16 @@ export default class ManyRelationship extends Relationship {
   }
 
   inverseDidDematerialize(inverseInternalModel) {
-    if (this._manyArray !== null && this.isAsync) {
-      this._retainedManyArray = this._manyArray;
-      this._manyArray = null;
+    if (this.isAsync) {
+      if (this._manyArray) {
+        this._retainedManyArray = this._manyArray;
+        this._manyArray = null;
+        this._removeInternalModelFromManyArray(this._retainedManyArray, inverseInternalModel);
+      }
+    } else {
+      this.removeInternalModelFromOwn(inverseInternalModel);
+      this.removeCanonicalInternalModelFromOwn(inverseInternalModel);
     }
-    this._removeInternalModelFromManyArray(this._manyArray, inverseInternalModel);
-    this._removeInternalModelFromManyArray(this._retainedManyArray, inverseInternalModel);
     this.notifyHasManyChanged();
   }
 
@@ -123,6 +127,12 @@ export default class ManyRelationship extends Relationship {
       this.canonicalState.splice(i, 1);
     }
     super.removeCanonicalInternalModelFromOwn(internalModel, idx);
+  }
+
+  removeAllCanonicalInternalModelsFromOwn() {
+    super.removeAllCanonicalInternalModelsFromOwn();
+    this.canonicalMembers.clear();
+    this.canonicalState.splice(0, this.canonicalState.length);
   }
 
   removeCompletelyFromOwn(internalModel) {
@@ -157,8 +167,19 @@ export default class ManyRelationship extends Relationship {
       return;
     }
     super.removeInternalModelFromOwn(internalModel, idx);
-    this._removeInternalModelFromManyArray(this._manyArray, internalModel, idx);
+    // TODO: explain this madness
+    this._removeInternalModelFromManyArray(this.manyArray, internalModel, idx);
     this._removeInternalModelFromManyArray(this._retainedManyArray, internalModel, idx);
+  }
+
+  removeAllInternalModelsFromOwn() {
+    super.removeAllInternalModelsFromOwn();
+    // TODO: remove all anyway
+    // TODO: explain why we instantiate here (keep local changes)
+    this.manyArray.clear();
+    if (this._retainedManyArray) {
+      this._retainedManyArray.clear();
+    }
   }
 
   _removeInternalModelFromManyArray(manyArray, internalModel, idx) {
@@ -314,12 +335,14 @@ export default class ManyRelationship extends Relationship {
     let manyArray = this._manyArray;
     if (manyArray) {
       manyArray.destroy();
+      this._manyArray = null;
     }
 
     let proxy = this.__loadingPromise;
 
     if (proxy) {
       proxy.destroy();
+      this.__loadingPromise = null;
     }
   }
 }

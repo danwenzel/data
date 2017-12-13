@@ -855,6 +855,7 @@ test('1:1 sync unload', function (assert) {
 
   run(() => house.unloadRecord());
 
+
   assert.equal(person.get('house'), null, 'unloading acts as a delete for sync relationships');
   assert.equal(env.store.hasRecordForId('house', 2), false, 'unloaded record gone from store');
 

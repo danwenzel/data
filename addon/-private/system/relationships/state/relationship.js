@@ -120,7 +120,13 @@ export default class Relationship {
   }
 
   removeAllInternalModelsFromOwn() {
-    this.forAllMembers(inverseInternalModel => this.removeInternalModelFromOwn(inverseInternalModel));
+    this.members.clear();
+    this.internalModel.updateRecordArrays();
+  }
+
+  removeAllCanonicalInternalModelsFromOwn() {
+    this.canonicalMembers.clear();
+    this.flushCanonicalLater();
   }
 
   removeInternalModels(internalModels) {

@@ -68,6 +68,8 @@ function destroyRelationship(rel) {
 
   if (!rel.isAsync) {
     rel.removeAllInternalModelsFromOwn();
+    rel.removeAllCanonicalInternalModelsFromOwn();
+    rel.destroy();
   }
 }
 // this (and all heimdall instrumentation) will be stripped by a babel transform
@@ -433,8 +435,6 @@ export default class InternalModel {
   _directlyRelatedInternalModels() {
     let array = [];
 
-    // TODO: only retained by inverse async
-    //  - inverse sync is client-side delete
     this._relationships.forEach((name, rel) => {
       array = array.concat(rel.members.list, rel.canonicalMembers.list);
     });

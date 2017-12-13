@@ -339,10 +339,8 @@ test("Removing a record from a hasMany reflects on the other hasMany side - asyn
   return run(() => {
     return user.get('topics').then(fetchedTopics => {
       assert.equal(fetchedTopics.get('length'), 1, 'Topics were setup correctly');
-debugger;
       fetchedTopics.removeObject(topic);
       return topic.get('users').then(fetchedUsers => {
-debugger;
         assert.equal(fetchedUsers.get('length'), 0, 'Users were removed correctly');
         assert.equal(fetchedUsers.objectAt(0), null, "User can't be fetched");
       });
