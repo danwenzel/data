@@ -119,6 +119,10 @@ export default class Relationship {
     }
   }
 
+  removeAllInternalModelsFromOwn() {
+    this.forAllMembers(inverseInternalModel => this.removeInternalModelFromOwn(inverseInternalModel));
+  }
+
   removeInternalModels(internalModels) {
     heimdall.increment(removeInternalModels);
     internalModels.forEach((internalModel) => this.removeInternalModel(internalModel));

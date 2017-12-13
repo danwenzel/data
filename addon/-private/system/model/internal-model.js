@@ -67,7 +67,7 @@ function destroyRelationship(rel) {
   rel.internalModelDidDematerialize();
 
   if (!rel.isAsync) {
-    rel.clear();
+    rel.removeAllInternalModelsFromOwn();
   }
 }
 // this (and all heimdall instrumentation) will be stripped by a babel transform
