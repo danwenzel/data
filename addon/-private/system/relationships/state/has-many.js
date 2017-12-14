@@ -95,8 +95,8 @@ export default class ManyRelationship extends Relationship {
       if (this._manyArray) {
         this._retainedManyArray = this._manyArray;
         this._manyArray = null;
-        this._removeInternalModelFromManyArray(this._retainedManyArray, inverseInternalModel);
       }
+      this._removeInternalModelFromManyArray(this._retainedManyArray, inverseInternalModel);
     } else {
       this.removeInternalModelFromOwn(inverseInternalModel);
       this.removeCanonicalInternalModelFromOwn(inverseInternalModel);
