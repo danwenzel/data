@@ -1488,3 +1488,8 @@ test('many:many async unload', function (assert) {
     assert.equal(person1Friends.isDestroyed, true, 'previous ManyArray is destroyed in the runloop after refetching');
   });
 });
+
+test('1 sync : 1 async');
+test('1 sync : many async');
+test('1 async : many sync');
+test('many sync : many async');
